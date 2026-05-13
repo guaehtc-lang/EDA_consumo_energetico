@@ -1,4 +1,4 @@
-﻿mes,mes_texto,tipo_semana,hora_periodo,hora_inicio,hora_fin,Time,periodo_tarifario
+﻿mes,mes_texto,tipo_semana,hora_periodo,hora_inicio,hora_fin,tramo_horario,periodo_tarifario
 1,Jan,Weekday,1,0,1,0-1,P6
 1,Jan,Weekday,2,1,2,1-2,P6
 1,Jan,Weekday,3,2,3,2-3,P6

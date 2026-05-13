@@ -981,3 +981,134 @@ print(f"Coste actual estimado:        {coste_actual_total:,.2f} €")
 print(f"Coste escenario adelanto 2h:  {coste_escenario_2h_total:,.2f} €")
 print(f"Diferencia:                   {diferencia_total_eur:,.2f} €")
 print(f"Variación porcentual:         {porcentaje_variacion:.2f} %")
+
+# ============================================================
+# H1.7 - TENDENCIA NORMALIZADA CONSUMO VS TEMPERATURA
+# ============================================================
+
+# Este gráfico no sustituye a H1_01.
+# Muestra una comparación visual de tendencias temporales.
+#
+# Se normalizan consumo y temperatura entre 0 y 1 para poder
+# compararlas en el mismo eje.
+#
+# Después se ajusta una curva polinómica de grado 2 a cada variable.
+# La lectura debe ser exploratoria: muestra tendencia temporal,
+# no causalidad directa.
+
+df_h1_tendencia = df_consumo_clima.copy()
+
+df_h1_tendencia = (
+    df_h1_tendencia
+    .sort_values("fecha")
+    .reset_index(drop=True)
+)
+
+df_h1_tendencia["dia_indice"] = np.arange(len(df_h1_tendencia))
+
+df_h1_tendencia["consumo_norm"] = (
+    (df_h1_tendencia["consumo_kwh"] - df_h1_tendencia["consumo_kwh"].min())
+    / (df_h1_tendencia["consumo_kwh"].max() - df_h1_tendencia["consumo_kwh"].min())
+)
+
+df_h1_tendencia["temperatura_norm"] = (
+    (df_h1_tendencia["temperatura_media"] - df_h1_tendencia["temperatura_media"].min())
+    / (df_h1_tendencia["temperatura_media"].max() - df_h1_tendencia["temperatura_media"].min())
+)
+
+x_h1 = df_h1_tendencia["dia_indice"]
+
+coef_consumo = np.polyfit(
+    x_h1,
+    df_h1_tendencia["consumo_norm"],
+    2
+)
+
+coef_temperatura = np.polyfit(
+    x_h1,
+    df_h1_tendencia["temperatura_norm"],
+    2
+)
+
+curva_consumo = np.poly1d(coef_consumo)
+curva_temperatura = np.poly1d(coef_temperatura)
+
+x_h1_suave = np.linspace(
+    x_h1.min(),
+    x_h1.max(),
+    500
+)
+
+y_consumo_suave = curva_consumo(x_h1_suave)
+y_temperatura_suave = curva_temperatura(x_h1_suave)
+
+fechas_suaves = pd.date_range(
+    start=df_h1_tendencia["fecha"].min(),
+    end=df_h1_tendencia["fecha"].max(),
+    periods=len(x_h1_suave)
+)
+
+fig, ax = plt.subplots(figsize=(15, 6))
+fig.patch.set_facecolor(COLOR_FONDO)
+ax.set_facecolor(COLOR_PANEL)
+
+ax.scatter(
+    df_h1_tendencia["fecha"],
+    df_h1_tendencia["consumo_norm"],
+    s=14,
+    alpha=0.18,
+    color=COLOR_CONSUMO,
+    label="Consumo diario normalizado"
+)
+
+ax.scatter(
+    df_h1_tendencia["fecha"],
+    df_h1_tendencia["temperatura_norm"],
+    s=14,
+    alpha=0.18,
+    color=COLOR_TEMP,
+    label="Temperatura media normalizada"
+)
+
+ax.plot(
+    fechas_suaves,
+    y_consumo_suave,
+    color=COLOR_CONSUMO,
+    linewidth=3,
+    label="Tendencia consumo grado 2"
+)
+
+ax.plot(
+    fechas_suaves,
+    y_temperatura_suave,
+    color=COLOR_TEMP,
+    linewidth=3,
+    label="Tendencia temperatura grado 2"
+)
+
+ax.set_title(
+    "Tendencias normalizadas de consumo y temperatura",
+    fontsize=15,
+    weight="bold",
+    color=COLOR_TEXTO
+)
+
+ax.set_xlabel("Fecha", color=COLOR_TEXTO)
+ax.set_ylabel("Valor normalizado 0-1", color=COLOR_TEXTO)
+
+ax.grid(True, alpha=0.22, color=COLOR_GRID)
+ax.tick_params(colors=COLOR_TEXTO)
+
+for spine in ax.spines.values():
+    spine.set_color("#374151")
+
+legend = ax.legend(
+    facecolor=COLOR_PANEL,
+    edgecolor="#374151",
+    framealpha=0.95,
+    loc="upper left"
+)
+
+plt.setp(legend.get_texts(), color=COLOR_TEXTO)
+
+guardar_grafico("h1_07_tendencia_consumo_temperatura_normalizada.png")
